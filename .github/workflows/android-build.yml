@@ -49,8 +49,8 @@ jobs:
         # Принимаем все лицензии SDK
         yes | sdkmanager --licenses
 
-        # Устанавливаем строго нужные версии platform-tools, platforms, build-tools (36.0.0!) и ndk
-        sdkmanager "platform-tools" "platforms;android-31" "build-tools;36.0.0" "ndk;25.2.9519653"
+        # Устанавливаем необходимые версии platform-tools, platforms, build-tools (34.0.0 — стабильная версия!) и ndk
+        sdkmanager "platform-tools" "platforms;android-31" "build-tools;34.0.0" "ndk;25.2.9519653"
 
         # Создаём симлинк для legacy пути, необходимого buildozer/p4a
         mkdir -p $HOME/.buildozer/android/platform/android-sdk/tools/bin
@@ -83,7 +83,7 @@ jobs:
         ANDROIDNDK: $HOME/.buildozer/android/platform/android-sdk/ndk/25.2.9519653
         ANDROIDAPI: 31
         ANDROIDMINAPI: 21
-        # Обязательно включаем пути к git, python, buildozer, sdkmanager, локальным bin
+        # Включаем в PATH нужные каталоги для корректной работы buildozer
         PATH: /usr/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH
       run: |
         # Чистим кеши и предыдущие сборки
