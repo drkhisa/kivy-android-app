@@ -10,8 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+    - uses: actions/checkout@v3
 
     - name: Install dependencies and setup Android SDK
       run: |
@@ -39,8 +38,10 @@ jobs:
 
         sdkmanager "platform-tools" "platforms;android-31" "build-tools;36.0.0"
 
-    - name: Build APK with Buildozer
+    - name: Fix sdkmanager path and build APK
       run: |
+        mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
+        ln -s ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
         buildozer android debug
 
     - name: Upload APK artifact
