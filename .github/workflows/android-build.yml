@@ -34,11 +34,13 @@ jobs:
           rm cmdline-tools.zip
         fi
 
-        echo "$CMDLINE_TOOLS/bin" >> $GITHUB_PATH
+        # Добавляем sdkmanager в PATH для текущего шага
+        export PATH="$CMDLINE_TOOLS/bin:$PATH"
 
     - name: Accept licenses and install SDK components
       run: |
-        sdkmanager --licenses
+        export PATH="$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH"
+        yes | sdkmanager --licenses
         sdkmanager "platform-tools" "platforms;android-31" "build-tools;36.0.0"
 
     - name: Fix sdkmanager path and build APK
