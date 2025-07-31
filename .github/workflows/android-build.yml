@@ -13,11 +13,31 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Install dependencies
+    - name: Install dependencies and setup Android SDK
       run: |
         sudo apt update
-        sudo apt install -y python3-pip openjdk-17-jdk git zip unzip
+        sudo apt install -y python3-pip openjdk-17-jdk git zip unzip curl
         pip3 install --upgrade buildozer cython
+
+        mkdir -p $HOME/.android && touch $HOME/.android/repositories.cfg
+
+        SDK_ROOT="$HOME/.buildozer/android/platform/android-sdk"
+        CMDLINE_TOOLS="$SDK_ROOT/cmdline-tools/latest"
+
+        if [ ! -f "$CMDLINE_TOOLS/bin/sdkmanager" ]; then
+          echo "Downloading Android cmdline-tools..."
+          curl -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
+          mkdir -p "$SDK_ROOT/cmdline-tools"
+          unzip cmdline-tools.zip -d "$SDK_ROOT/cmdline-tools"
+          mv "$SDK_ROOT/cmdline-tools/cmdline-tools" "$CMDLINE_TOOLS"
+          rm cmdline-tools.zip
+        fi
+
+        export PATH=$CMDLINE_TOOLS/bin:$PATH
+
+        yes | sdkmanager --licenses
+
+        sdkmanager "platform-tools" "platforms;android-31" "build-tools;36.0.0"
 
     - name: Build APK with Buildozer
       run: |
