@@ -17,8 +17,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y python3-pip openjdk-17-jdk git zip unzip curl \
-          build-essential autoconf automake libtool pkg-config tar
-
+          build-essential autoconf automake libtool pkg-config tar m4
         pip3 install --upgrade buildozer cython
 
         mkdir -p $HOME/.android && touch $HOME/.android/repositories.cfg
