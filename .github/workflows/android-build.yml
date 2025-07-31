@@ -18,7 +18,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y python3-pip openjdk-17-jdk git zip unzip curl \
           build-essential autoconf automake libtool pkg-config tar
-        
+
         pip3 install --upgrade buildozer cython
 
         # Подготовка SDK
@@ -40,7 +40,8 @@ jobs:
 
     - name: Accept licenses and install SDK components
       run: |
-        sdkmanager --licenses
+        export PATH="$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH"
+        yes | sdkmanager --licenses
         sdkmanager "platform-tools" "platforms;android-31" "build-tools;31.0.0"
 
     - name: Build APK with Buildozer
@@ -50,6 +51,10 @@ jobs:
         ANDROIDAPI: 31
         ANDROIDMINAPI: 21
       run: |
+        # 🔧 Символическая ссылка для старого пути sdkmanager, необходимого buildozer
+        mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
+        ln -sf ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
+
         buildozer android debug --verbose
 
     - name: Upload APK artifact
