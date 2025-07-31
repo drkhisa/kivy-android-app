@@ -60,7 +60,8 @@ jobs:
         /bin/rm -rf .buildozer ~/.buildozer ~/.cache
 
         buildozer android debug --verbose
-      shell: /bin/bash
+      shell: bash
+
 
 
     - name: Upload APK artifact
