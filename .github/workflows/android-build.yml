@@ -33,10 +33,13 @@ jobs:
         mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
         ln -sf /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
 
-    - name: Accept SDK licenses and install components
+    - name: Accept SDK licenses and install required components
       run: |
         yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses
-        /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-31" "build-tools;31.0.0"
+        /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager \
+          "platform-tools" \
+          "platforms;android-31" \
+          "build-tools;31.0.0"
 
     - name: Build APK with Buildozer
       run: |
