@@ -9,6 +9,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      ANDROIDSDK: ${{ github.workspace }}/.buildozer/android/platform/android-sdk
+      ANDROIDNDK: ${{ github.workspace }}/.buildozer/android/platform/android-ndk-r25b
+      ANDROIDAPI: '31'
+      ANDROIDMINAPI: '21'
+      PATH: ${{ github.workspace }}/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:${{ github.workspace }}/.buildozer/android/platform/android-sdk/platform-tools:${{ github.workspace }}/.buildozer/android/platform/android-ndk-r25b:$PATH
+
     steps:
     - name: Checkout repo
       uses: actions/checkout@v3
@@ -17,7 +24,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y python3-pip openjdk-17-jdk git zip unzip curl \
-          autoconf libtool automake pkg-config
+          autoconf libtool automake pkg-config build-essential
         pip3 install --upgrade buildozer cython
 
         mkdir -p $HOME/.android && touch $HOME/.android/repositories.cfg
@@ -39,6 +46,16 @@ jobs:
         yes | sdkmanager --licenses
 
         sdkmanager "platform-tools" "platforms;android-31" "build-tools;36.0.0"
+
+    - name: Download and setup Android NDK
+      run: |
+        NDK_DIR="$HOME/.buildozer/android/platform/android-ndk-r25b"
+        if [ ! -d "$NDK_DIR" ]; then
+          echo "Downloading Android NDK r25b..."
+          curl -o android-ndk.zip https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
+          unzip android-ndk.zip -d $HOME/.buildozer/android/platform/
+          rm android-ndk.zip
+        fi
 
     - name: Fix sdkmanager path and build APK
       run: |
