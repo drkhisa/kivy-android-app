@@ -40,30 +40,27 @@ jobs:
     - name: Accept licenses and install SDK components
       run: |
         export PATH="$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH"
+
         yes | sdkmanager --licenses
         sdkmanager "platform-tools" "platforms;android-31" "build-tools;34.0.0" "ndk;25.2.9519653"
 
+        # 🛠️ Симлинк для старого пути, который ожидает buildozer/p4a
+        mkdir -p $HOME/.buildozer/android/platform/android-sdk/tools/bin
+        ln -sf $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager \
+               $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
+
     - name: Build APK with Buildozer
-      run: |
-        export PATH="$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH"
-
-        echo "Testing if rm works:"
-        which rm || echo "rm not found"
-        rm --version || true
-
-        # Очистка кеша и предыдущих сборок
-        rm -rf .buildozer ~/.buildozer ~/.cache
-
-        # Обход legacy пути, который иногда требуется p4a
-        mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
-        ln -sf ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
-
-        buildozer android debug --verbose
       env:
         ANDROIDSDK: $HOME/.buildozer/android/platform/android-sdk
         ANDROIDNDK: $HOME/.buildozer/android/platform/android-sdk/ndk/25.2.9519653
         ANDROIDAPI: 31
         ANDROIDMINAPI: 21
+        PATH: $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH
+      run: |
+        # Очистка кеша и предыдущих сборок
+        rm -rf .buildozer ~/.buildozer ~/.cache
+
+        buildozer android debug --verbose
 
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
