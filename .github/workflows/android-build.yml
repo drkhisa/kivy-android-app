@@ -43,11 +43,14 @@ jobs:
       run: |
         export PATH="$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH"
 
+        # Обновляем sdkmanager до последней версии
+        sdkmanager --update
+
         # Принимаем все лицензии SDK
         yes | sdkmanager --licenses
 
-        # Устанавливаем строго нужные версии platform-tools, platforms, build-tools и ndk
-        sdkmanager "platform-tools" "platforms;android-31" "build-tools;34.0.0" "ndk;25.2.9519653"
+        # Устанавливаем строго нужные версии platform-tools, platforms, build-tools (36.0.0!) и ndk
+        sdkmanager "platform-tools" "platforms;android-31" "build-tools;36.0.0" "ndk;25.2.9519653"
 
         # Создаём симлинк для legacy пути, необходимого buildozer/p4a
         mkdir -p $HOME/.buildozer/android/platform/android-sdk/tools/bin
