@@ -16,8 +16,8 @@ jobs:
     - name: Install dependencies and setup Android SDK
       run: |
         sudo apt-get update
-        sudo apt-get install -y python3-pip openjdk-17-jdk git zip unzip curl tar \
-          autoconf libtool automake pkg-config build-essential
+        sudo apt-get install -y python3-pip openjdk-17-jdk git zip unzip curl \
+          autoconf libtool automake pkg-config tar
         pip3 install --upgrade buildozer cython
 
         mkdir -p $HOME/.android && touch $HOME/.android/repositories.cfg
