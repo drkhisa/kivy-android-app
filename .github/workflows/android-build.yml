@@ -55,12 +55,13 @@ jobs:
         ANDROIDNDK: $HOME/.buildozer/android/platform/android-sdk/ndk/25.2.9519653
         ANDROIDAPI: 31
         ANDROIDMINAPI: 21
-        PATH: $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH
+        PATH: $HOME/.local/bin:$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH
       run: |
         /bin/rm -rf .buildozer ~/.buildozer ~/.cache
 
         buildozer android debug --verbose
       shell: bash
+
 
 
 
