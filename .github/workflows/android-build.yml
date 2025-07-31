@@ -18,8 +18,10 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y python3-pip openjdk-17-jdk git zip unzip curl \
           build-essential autoconf automake libtool pkg-config tar
+        
         pip3 install --upgrade buildozer cython
 
+        # Подготовка SDK
         mkdir -p $HOME/.android && touch $HOME/.android/repositories.cfg
 
         SDK_ROOT="$HOME/.buildozer/android/platform/android-sdk"
@@ -34,19 +36,20 @@ jobs:
           rm cmdline-tools.zip
         fi
 
-        # Добавляем sdkmanager в PATH для текущего шага
-        export PATH="$CMDLINE_TOOLS/bin:$PATH"
+        echo "$CMDLINE_TOOLS/bin" >> $GITHUB_PATH
 
     - name: Accept licenses and install SDK components
       run: |
-        export PATH="$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH"
-        yes | sdkmanager --licenses
-        sdkmanager "platform-tools" "platforms;android-31" "build-tools;36.0.0"
+        sdkmanager --licenses
+        sdkmanager "platform-tools" "platforms;android-31" "build-tools;31.0.0"
 
-    - name: Fix sdkmanager path and build APK
+    - name: Build APK with Buildozer
+      env:
+        ANDROIDSDK: $HOME/.buildozer/android/platform/android-sdk
+        ANDROIDNDK: $HOME/.buildozer/android/platform/android-ndk-r25b
+        ANDROIDAPI: 31
+        ANDROIDMINAPI: 21
       run: |
-        mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
-        ln -sf ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
         buildozer android debug --verbose
 
     - name: Upload APK artifact
