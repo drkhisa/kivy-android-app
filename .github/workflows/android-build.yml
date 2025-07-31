@@ -40,19 +40,17 @@ jobs:
     - name: Accept licenses and install SDK components
       run: |
         export PATH="$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH"
-        yes | $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
-        $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-31" "build-tools;34.0.0"
         yes | sdkmanager --licenses
         sdkmanager "platform-tools" "platforms;android-31" "build-tools;34.0.0" "ndk;25.2.9519653"
 
     - name: Build APK with Buildozer
-      env:
-        ANDROIDSDK: $HOME/.buildozer/android/platform/android-sdk
-        ANDROIDNDK: $HOME/.buildozer/android/platform/android-sdk/ndk/25.2.9519653
-        ANDROIDAPI: 31
-        ANDROIDMINAPI: 21
-        PATH: $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH
       run: |
+        export PATH="$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH"
+
+        echo "Testing if rm works:"
+        which rm || echo "rm not found"
+        rm --version || true
+
         # Очистка кеша и предыдущих сборок
         rm -rf .buildozer ~/.buildozer ~/.cache
 
@@ -61,6 +59,11 @@ jobs:
         ln -sf ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
 
         buildozer android debug --verbose
+      env:
+        ANDROIDSDK: $HOME/.buildozer/android/platform/android-sdk
+        ANDROIDNDK: $HOME/.buildozer/android/platform/android-sdk/ndk/25.2.9519653
+        ANDROIDAPI: 31
+        ANDROIDMINAPI: 21
 
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
