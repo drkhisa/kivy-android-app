@@ -18,6 +18,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y python3-pip openjdk-17-jdk git zip unzip curl \
           build-essential autoconf automake libtool libtool-bin libltdl-dev pkg-config m4 tar
+
         pip3 install --upgrade buildozer cython
 
         mkdir -p $HOME/.android && touch $HOME/.android/repositories.cfg
@@ -41,14 +42,21 @@ jobs:
         export PATH="$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH"
         yes | $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
         $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-31" "build-tools;34.0.0"
+        yes | sdkmanager --licenses
+        sdkmanager "platform-tools" "platforms;android-31" "build-tools;34.0.0" "ndk;25.2.9519653"
 
     - name: Build APK with Buildozer
       env:
         ANDROIDSDK: $HOME/.buildozer/android/platform/android-sdk
-        ANDROIDNDK: $HOME/.buildozer/android/platform/android-ndk-r25b
+        ANDROIDNDK: $HOME/.buildozer/android/platform/android-sdk/ndk/25.2.9519653
         ANDROIDAPI: 31
         ANDROIDMINAPI: 21
+        PATH: $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH
       run: |
+        # Очистка кеша и предыдущих сборок
+        rm -rf .buildozer ~/.buildozer ~/.cache
+
+        # Обход legacy пути, который иногда требуется p4a
         mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
         ln -sf ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
 
