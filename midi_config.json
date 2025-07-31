@@ -1,0 +1,64 @@
+{
+  "assigned_controls": {
+    "mute_0": 93,
+    "mute_4": 103,
+    "compressor": 119,
+    "fader_0": 83,
+    "fader_1": 84,
+    "fader_2": 85,
+    "fader_3": 86,
+    "fader_4": 87,
+    "fader_5": 88,
+    "mute_1": 94,
+    "mute_2": 95,
+    "mute_3": 102,
+    "mute_5": 104,
+    "pan_0": 73,
+    "pan_1": 74,
+    "pan_2": 75,
+    "pan_3": 76,
+    "pan_4": 77,
+    "pan_5": 78,
+    "effect_0": 63,
+    "effect_1": 64,
+    "effect_2": 65,
+    "effect_3": 66,
+    "effect_4": 67,
+    "effect_5": 68
+  },
+  "fader_values": [
+    0,
+    44,
+    31,
+    14,
+    60,
+    22
+  ],
+  "panorama_values": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "effect_values": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "mute_states": [
+    true,
+    true,
+    true,
+    true,
+    false,
+    false
+  ],
+  "compressor_state": true,
+  "midi_in_port": "MIDIIN2 (ZOOM L6) 1",
+  "midi_out_port": "MIDIOUT2 (ZOOM L6) 2"
+}
