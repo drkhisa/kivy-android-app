@@ -10,12 +10,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout repo
+      uses: actions/checkout@v3
 
     - name: Install dependencies and setup Android SDK
       run: |
-        sudo apt update
-        sudo apt install -y python3-pip openjdk-17-jdk git zip unzip curl
+        sudo apt-get update
+        sudo apt-get install -y python3-pip openjdk-17-jdk git zip unzip curl \
+          autoconf libtool automake pkg-config
         pip3 install --upgrade buildozer cython
 
         mkdir -p $HOME/.android && touch $HOME/.android/repositories.cfg
@@ -41,7 +43,7 @@ jobs:
     - name: Fix sdkmanager path and build APK
       run: |
         mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
-        ln -s ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
+        ln -sf ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
         buildozer android debug
 
     - name: Upload APK artifact
