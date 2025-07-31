@@ -1,0 +1,30 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - main  # или master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y python3-pip openjdk-17-jdk git zip unzip
+        pip3 install --upgrade buildozer
+
+    - name: Build APK with Buildozer
+      run: |
+        buildozer android debug
+
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: mykivyapp-apk
+        path: bin/*.apk
