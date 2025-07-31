@@ -36,16 +36,20 @@ jobs:
           rm cmdline-tools.zip
         fi
 
+        # Добавляем sdkmanager в PATH (используется для установки компонентов)
         echo "$CMDLINE_TOOLS/bin" >> $GITHUB_PATH
 
     - name: Accept licenses and install SDK components
       run: |
         export PATH="$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH"
 
+        # Принимаем все лицензии SDK
         yes | sdkmanager --licenses
+
+        # Устанавливаем строго нужные версии platform-tools, platforms, build-tools и ndk
         sdkmanager "platform-tools" "platforms;android-31" "build-tools;34.0.0" "ndk;25.2.9519653"
 
-        # Симлинк для legacy пути (нужно для p4a/buildozer)
+        # Создаём симлинк для legacy пути, необходимого buildozer/p4a
         mkdir -p $HOME/.buildozer/android/platform/android-sdk/tools/bin
         ln -sf $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager \
                $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
@@ -76,10 +80,13 @@ jobs:
         ANDROIDNDK: $HOME/.buildozer/android/platform/android-sdk/ndk/25.2.9519653
         ANDROIDAPI: 31
         ANDROIDMINAPI: 21
-        # Добавляем /usr/bin, /usr/local/bin и путь к sdkmanager и локальным bin
+        # Обязательно включаем пути к git, python, buildozer, sdkmanager, локальным bin
         PATH: /usr/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH
       run: |
+        # Чистим кеши и предыдущие сборки
         /bin/rm -rf .buildozer ~/.buildozer ~/.cache
+
+        # Запускаем сборку
         buildozer android debug --verbose
       shell: bash
 
