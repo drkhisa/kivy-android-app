@@ -19,7 +19,8 @@ jobs:
         sudo apt-get install -y coreutils python3-pip openjdk-17-jdk git zip unzip curl \
           build-essential autoconf automake libtool libtool-bin libltdl-dev pkg-config m4 tar
 
-        pip3 install --upgrade buildozer cython
+        # Устанавливаем buildozer и cython глобально, чтобы buildozer точно был в PATH
+        sudo pip3 install --upgrade buildozer cython
 
         mkdir -p $HOME/.android && touch $HOME/.android/repositories.cfg
 
@@ -44,7 +45,7 @@ jobs:
         yes | sdkmanager --licenses
         sdkmanager "platform-tools" "platforms;android-31" "build-tools;34.0.0" "ndk;25.2.9519653"
 
-        # 🛠️ Симлинк для старого пути, который ожидает buildozer/p4a
+        # Симлинк для legacy пути (нужно для p4a/buildozer)
         mkdir -p $HOME/.buildozer/android/platform/android-sdk/tools/bin
         ln -sf $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager \
                $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
@@ -55,15 +56,12 @@ jobs:
         ANDROIDNDK: $HOME/.buildozer/android/platform/android-sdk/ndk/25.2.9519653
         ANDROIDAPI: 31
         ANDROIDMINAPI: 21
-        PATH: $HOME/.local/bin:$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH
+        PATH: /usr/local/bin:$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH
       run: |
         /bin/rm -rf .buildozer ~/.buildozer ~/.cache
 
         buildozer android debug --verbose
       shell: bash
-
-
-
 
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
