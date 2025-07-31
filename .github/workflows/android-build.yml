@@ -23,25 +23,20 @@ jobs:
 
         mkdir -p $HOME/.android && touch $HOME/.android/repositories.cfg
 
-        SDK_ROOT="$HOME/.buildozer/android/platform/android-sdk"
-        CMDLINE_TOOLS="$SDK_ROOT/cmdline-tools/latest"
-
-        if [ ! -f "$CMDLINE_TOOLS/bin/sdkmanager" ]; then
-          echo "Downloading Android cmdline-tools..."
-          curl -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
-          mkdir -p "$SDK_ROOT/cmdline-tools"
-          unzip -q cmdline-tools.zip -d "$SDK_ROOT/cmdline-tools"
-          mv "$SDK_ROOT/cmdline-tools/cmdline-tools" "$CMDLINE_TOOLS"
-          rm cmdline-tools.zip
-        fi
-
-        echo "$CMDLINE_TOOLS/bin" >> $GITHUB_PATH
+        # Install Android SDK manually
+        SDK_DIR=$HOME/.buildozer/android/platform/android-sdk
+        mkdir -p "$SDK_DIR/cmdline-tools"
+        cd "$SDK_DIR/cmdline-tools"
+        curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+        unzip sdk-tools.zip -d latest
+        rm sdk-tools.zip
+        echo "$SDK_DIR/cmdline-tools/latest/bin" >> $GITHUB_PATH
 
     - name: Accept licenses and install SDK components
       run: |
-        export PATH="$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH"
-        yes | sdkmanager --licenses
-        sdkmanager "platform-tools" "platforms;android-31" "build-tools;34.0.0"
+        yes | sdkmanager --sdk_root=$HOME/.buildozer/android/platform/android-sdk --licenses
+        sdkmanager --sdk_root=$HOME/.buildozer/android/platform/android-sdk \
+          "platform-tools" "platforms;android-31" "build-tools;31.0.0"
 
     - name: Build APK with Buildozer
       env:
@@ -50,9 +45,6 @@ jobs:
         ANDROIDAPI: 31
         ANDROIDMINAPI: 21
       run: |
-        mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
-        ln -sf ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
-
         buildozer android debug --verbose
 
     - name: Upload APK artifact
