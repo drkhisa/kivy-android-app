@@ -57,6 +57,17 @@ jobs:
         ln -sf $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager \
                $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
 
+    - name: Check aidl in build-tools 34.0.0
+      run: |
+        AIDL_PATH="$HOME/.buildozer/android/platform/android-sdk/build-tools/34.0.0/aidl"
+        if [ ! -f "$AIDL_PATH" ]; then
+          echo "aidl not found. Reinstalling build-tools 34.0.0..."
+          sdkmanager --uninstall "build-tools;34.0.0" || true
+          sdkmanager "build-tools;34.0.0"
+        fi
+        echo "Checking aidl again:"
+        ls -l "$AIDL_PATH" || echo "Still missing: aidl"
+
     - name: Show versions and environment for debugging
       run: |
         echo "Java version:"
