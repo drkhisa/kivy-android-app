@@ -49,7 +49,7 @@ jobs:
         # Принимаем все лицензии SDK
         yes | sdkmanager --licenses
 
-        # Устанавливаем необходимые версии platform-tools, platforms, build-tools (34.0.0 — стабильная версия!) и ndk
+        # Устанавливаем строго нужные версии platform-tools, platforms, build-tools 34.0.0 и ndk
         sdkmanager "platform-tools" "platforms;android-31" "build-tools;34.0.0" "ndk;25.2.9519653"
 
         # Создаём симлинк для legacy пути, необходимого buildozer/p4a
