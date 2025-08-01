@@ -17,6 +17,7 @@ android.enable_androidx = True
 android.enable_multidex = True
 android.sdk_path = ~/.buildozer/android/platform/android-sdk
 android.ndk_path = ~/.buildozer/android/platform/android-sdk/ndk/25.2.9519653
+android.add_manifest_xml = True
 p4a.branch = develop
 
 [buildozer]
