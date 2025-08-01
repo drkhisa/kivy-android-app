@@ -97,8 +97,10 @@ jobs:
         PATH: /usr/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH
       run: |
         /bin/rm -rf .buildozer ~/.buildozer ~/.cache
+        pip3 install 'cython<3'
         buildozer android debug --verbose
       shell: bash
+
 
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
