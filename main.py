@@ -1,258 +1,148 @@
-from kivy.app import App
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.gridlayout import GridLayout
-from kivy.uix.slider import Slider
-from kivy.uix.label import Label
-from kivy.uix.button import Button
-from kivy.uix.popup import Popup
-from kivy.uix.togglebutton import ToggleButton
-from kivy.clock import Clock
-from kivy.core.window import Window
-
 import json
 import os
-from threading import Thread
-
+from kivy.app import App
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.slider import Slider
+from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.button import Button
+from kivy.uix.label import Label
 from jnius import autoclass, cast
-from android import mActivity
 
 CONFIG_FILE = "midi_config.json"
 NUM_CHANNELS = 6
 
-# Android MIDI API
-MidiManager = autoclass("android.media.midi.MidiManager")
-MidiDeviceInfo = autoclass("android.media.midi.MidiDeviceInfo")
-MidiReceiver = autoclass("android.media.midi.MidiReceiver")
-MidiInputPort = autoclass("android.media.midi.MidiInputPort")
-MidiOutputPort = autoclass("android.media.midi.MidiOutputPort")
-MidiDevice = autoclass("android.media.midi.MidiDevice")
-Context = autoclass("android.content.Context")
-PythonActivity = autoclass("org.kivy.android.PythonActivity")
-activity = PythonActivity.mActivity
-midi_service = cast("android.media.midi.MidiManager", activity.getSystemService(Context.MIDI_SERVICE))
+# MIDI API
+PythonActivity = autoclass('org.kivy.android.PythonActivity')
+Context = autoclass('android.content.Context')
+MidiManager = autoclass('android.media.midi.MidiManager')
+MidiDeviceInfo = autoclass('android.media.midi.MidiDeviceInfo')
+MidiReceiver = autoclass('android.media.midi.MidiReceiver')
+MidiOutputPort = autoclass('android.media.midi.MidiOutputPort')
 
+class MIDIController:
+    def __init__(self):
+        self.activity = PythonActivity.mActivity
+        self.midi_manager = cast(MidiManager, self.activity.getSystemService(Context.MIDI_SERVICE))
+        self.output_port = None
+        self.open_output_port()
 
-class Channel(BoxLayout):
-    def __init__(self, index, app, **kwargs):
-        super().__init__(orientation='vertical', spacing=5, padding=5, **kwargs)
-        self.index = index
-        self.app = app
+    def open_output_port(self):
+        infos = self.midi_manager.getDevices()
+        if len(infos) > 0:
+            self.device = infos[0]  # по умолчанию первый
+            self.midi_manager.openDevice(self.device, self.on_device_opened, None)
 
-        self.add_widget(Label(text=f"Канал {index + 1}", size_hint=(1, 0.1)))
+    def on_device_opened(self, device):
+        if device is not None:
+            self.output_port = device.openOutputPort(0)
 
-        self.fader = Slider(min=0, max=127, value=64, orientation='vertical', size_hint=(1, 0.6))
+    def send_cc(self, cc_num, value, channel=0):
+        if self.output_port:
+            status = 0xB0 | (channel & 0x0F)
+            msg = bytearray([status, cc_num & 0x7F, value & 0x7F])
+            self.output_port.send(msg, 0, len(msg))
+
+class MixerChannel(BoxLayout):
+    def __init__(self, channel_num, midi_ctrl, config, **kwargs):
+        super().__init__(orientation='vertical', **kwargs)
+        self.channel = channel_num
+        self.midi = midi_ctrl
+        self.config = config
+
+        self.add_widget(Label(text=f"Канал {self.channel + 1}"))
+
+        self.fader = Slider(min=0, max=127, value=self.config.get('fader', 0))
         self.fader.bind(value=self.on_fader_change)
+        self.add_widget(Label(text="Громкость"))
         self.add_widget(self.fader)
 
-        self.mute = ToggleButton(text="Mute", size_hint=(1, 0.1), background_color=(1, 0, 0, 1))
+        self.pan = Slider(min=0, max=127, value=self.config.get('pan', 64))
+        self.pan.bind(value=self.on_pan_change)
+        self.add_widget(Label(text="Панорама"))
+        self.add_widget(self.pan)
+
+        self.mute = ToggleButton(text="Mute", state='down' if self.config.get('mute') else 'normal')
         self.mute.bind(on_press=self.on_mute_toggle)
         self.add_widget(self.mute)
 
-        self.pan = Slider(min=-64, max=63, value=0, orientation='horizontal', size_hint=(1, 0.1))
-        self.pan.bind(value=self.on_pan_change)
-        self.add_widget(self.pan)
+        self.fx = Slider(min=0, max=127, value=self.config.get('fx', 0))
+        self.fx.bind(value=self.on_fx_change)
+        self.add_widget(Label(text="FX"))
+        self.add_widget(self.fx)
 
-        self.effect = Slider(min=0, max=127, value=0, orientation='horizontal', size_hint=(1, 0.1))
-        self.effect.bind(value=self.on_effect_change)
-        self.add_widget(self.effect)
-
-        self.assign_btn = Button(text="Assign", size_hint=(1, 0.1))
-        self.assign_btn.bind(on_press=self.open_assign_popup)
-        self.add_widget(self.assign_btn)
+        self.cc_map = self.config.get('cc_map', {
+            'fader': 10 + self.channel,
+            'pan': 20 + self.channel,
+            'mute': 30 + self.channel,
+            'fx': 40 + self.channel,
+        })
 
     def on_fader_change(self, instance, value):
-        if self.mute.state != 'down':
-            self.app.send_cc(f"fader_{self.index}", int(value))
-
-    def on_mute_toggle(self, instance):
-        state = self.mute.state == 'down'
-        self.mute.background_color = (0.5, 0.5, 0.5, 1) if state else (1, 0, 0, 1)
-        val = 127 if state else 0
-        self.app.send_cc(f"mute_{self.index}", val)
-        if not state:
-            self.app.send_cc(f"fader_{self.index}", int(self.fader.value))
+        self.midi.send_cc(self.cc_map['fader'], int(value), self.channel)
+        self.config['fader'] = int(value)
 
     def on_pan_change(self, instance, value):
-        self.app.send_cc(f"pan_{self.index}", int(value + 64))
+        self.midi.send_cc(self.cc_map['pan'], int(value), self.channel)
+        self.config['pan'] = int(value)
 
-    def on_effect_change(self, instance, value):
-        self.app.send_cc(f"effect_{self.index}", int(value))
+    def on_mute_toggle(self, instance):
+        val = 0 if instance.state == 'down' else 127
+        self.midi.send_cc(self.cc_map['mute'], val, self.channel)
+        self.config['mute'] = instance.state == 'down'
 
-    def open_assign_popup(self, instance):
-        self.app.enter_assign_mode(f"fader_{self.index}")
+    def on_fx_change(self, instance, value):
+        self.midi.send_cc(self.cc_map['fx'], int(value), self.channel)
+        self.config['fx'] = int(value)
 
+class MidiCompressorButton(ToggleButton):
+    def __init__(self, midi_ctrl, config, **kwargs):
+        super().__init__(**kwargs)
+        self.text = "Компрессор"
+        self.midi = midi_ctrl
+        self.config = config
+        self.state = 'down' if config.get("compressor_state") else 'normal'
+        self.background_color = (0, 1, 0, 1) if self.state == 'down' else (1, 1, 1, 1)
+        self.bind(on_press=self.on_toggle)
 
-class MidiApp(App):
+    def on_toggle(self, instance):
+        val = 127 if instance.state == 'down' else 0
+        self.background_color = (0, 1, 0, 1) if instance.state == 'down' else (1, 1, 1, 1)
+        self.config["compressor_state"] = instance.state == 'down'
+        self.midi.send_cc(self.config.get("compressor_cc", 50), val, 0)
+
+class MidiControllerApp(App):
     def build(self):
-        self.assigned_controls = {}
+        self.config_data = self.load_config()
+        self.midi = MIDIController()
+        self.layout = BoxLayout(orientation='horizontal')
+
         self.channels = []
-        self.compressor_state = False
-        self.assigning_control = None
-        self.midi_out_port = None
-        self.midi_in_port = None
-        self.saved_data = {}
-        self.load_config()
-
-        root = BoxLayout(orientation='vertical', padding=10, spacing=10)
-
-        grid = GridLayout(cols=NUM_CHANNELS, spacing=10, size_hint=(1, 0.85))
         for i in range(NUM_CHANNELS):
-            ch = Channel(i, self)
-            self.channels.append(ch)
-            grid.add_widget(ch)
+            chan_config = self.config_data.setdefault(f"channel_{i}", {})
+            channel = MixerChannel(i, self.midi, chan_config)
+            self.channels.append(channel)
+            self.layout.add_widget(channel)
 
-        root.add_widget(grid)
+        right_panel = BoxLayout(orientation='vertical', size_hint_x=0.3)
+        self.compressor_btn = MidiCompressorButton(self.midi, self.config_data)
+        right_panel.add_widget(self.compressor_btn)
 
-        bottom = BoxLayout(size_hint=(1, 0.15), spacing=10)
-        self.compressor_btn = Button(text="Компрессор", size_hint=(0.3, 1), background_color=(0.3, 0.3, 0.3, 1))
-        self.compressor_btn.bind(on_press=self.toggle_compressor)
-        bottom.add_widget(self.compressor_btn)
+        save_btn = Button(text="💾 Сохранить", size_hint_y=0.2)
+        save_btn.bind(on_press=self.save_config)
+        right_panel.add_widget(save_btn)
 
-        assign_mode_btn = Button(text="Назначить MIDI", size_hint=(0.3, 1))
-        assign_mode_btn.bind(on_press=lambda x: self.enter_assign_mode("compressor"))
-        bottom.add_widget(assign_mode_btn)
-
-        save_btn = Button(text="Сохранить", size_hint=(0.3, 1))
-        save_btn.bind(on_press=lambda x: self.save_config())
-        bottom.add_widget(save_btn)
-
-        root.add_widget(bottom)
-
-        self.connect_midi()
-        return root
-
-    def connect_midi(self):
-        try:
-            device_infos = midi_service.getDevices()
-            if not device_infos or device_infos.length == 0:
-                print("❌ Нет доступных MIDI-устройств")
-                return
-
-            device_info = device_infos[0]
-            print(f"✅ Найдено MIDI устройство: {device_info}")
-            midi_service.openDevice(device_info, self.on_midi_device_opened, None)
-
-        except Exception as e:
-            print(f"❌ Ошибка при подключении к MIDI: {e}")
-
-    def on_midi_device_opened(self, device):
-        try:
-            self.midi_out_port = device.openOutputPort(0)
-            self.midi_in_port = device.openInputPort(0)
-            print("✅ Порты MIDI открыты")
-
-            def listen():
-                try:
-                    while True:
-                        if self.midi_in_port:
-                            buffer = bytearray(3)
-                            n = self.midi_in_port.read(buffer, 0, 3)
-                            if n >= 3:
-                                status, cc, value = buffer[0], buffer[1], buffer[2]
-                                if 0xB0 <= status <= 0xBF:
-                                    if self.assigning_control:
-                                        control_name = self.assigning_control
-                                        self.assigned_controls[control_name] = cc
-                                        self.assigning_control = None
-                                        self.save_config()
-                                        print(f"🎚 Назначен CC {cc} -> {control_name}")
-                                    else:
-                                        Clock.schedule_once(lambda dt: self.update_control_by_cc(cc, value))
-                except Exception as e:
-                    print(f"❌ Ошибка в потоке чтения MIDI: {e}")
-
-            Thread(target=listen, daemon=True).start()
-
-        except Exception as e:
-            print(f"❌ Ошибка открытия MIDI портов: {e}")
-
-    def update_control_by_cc(self, cc, value):
-        for control_name, assigned_cc in self.assigned_controls.items():
-            if assigned_cc == cc:
-                index = int(control_name.split('_')[1]) if '_' in control_name else -1
-                if control_name.startswith('fader_') and 0 <= index < len(self.channels):
-                    self.channels[index].fader.value = value
-                elif control_name.startswith('mute_') and 0 <= index < len(self.channels):
-                    self.channels[index].mute.state = 'down' if value >= 64 else 'normal'
-                    self.channels[index].on_mute_toggle(None)
-                elif control_name.startswith('pan_') and 0 <= index < len(self.channels):
-                    self.channels[index].pan.value = value - 64
-                elif control_name.startswith('effect_') and 0 <= index < len(self.channels):
-                    self.channels[index].effect.value = value
-                elif control_name == 'compressor':
-                    self.compressor_state = value >= 64
-                    self.compressor_btn.background_color = (0, 0.8, 0, 1) if self.compressor_state else (0.3, 0.3, 0.3, 1)
-                break
-
-    def send_cc(self, control_name, value):
-        cc = self.assigned_controls.get(control_name)
-        if cc is not None and self.midi_out_port:
-            try:
-                data = bytearray([0xB0, cc, value])
-                self.midi_out_port.send(data, 0, len(data))
-                print(f"📤 Отправлен CC {cc} = {value}")
-            except Exception as e:
-                print(f"❌ Ошибка отправки CC {cc}: {e}")
-
-    def toggle_compressor(self, instance):
-        self.compressor_state = not self.compressor_state
-        val = 127 if self.compressor_state else 0
-        self.send_cc("compressor", val)
-        self.compressor_btn.background_color = (0, 0.8, 0, 1) if self.compressor_state else (0.3, 0.3, 0.3, 1)
-
-    def save_config(self):
-        data = {
-            "assigned_controls": self.assigned_controls,
-            "fader_values": [ch.fader.value for ch in self.channels],
-            "pan_values": [ch.pan.value for ch in self.channels],
-            "effect_values": [ch.effect.value for ch in self.channels],
-            "mute_states": [ch.mute.state == 'down' for ch in self.channels],
-            "compressor_state": self.compressor_state
-        }
-        with open(CONFIG_FILE, 'w') as f:
-            json.dump(data, f)
-        print("✅ Конфигурация сохранена")
+        self.layout.add_widget(right_panel)
+        return self.layout
 
     def load_config(self):
         if os.path.exists(CONFIG_FILE):
-            try:
-                with open(CONFIG_FILE, 'r') as f:
-                    data = json.load(f)
-                    self.assigned_controls = data.get("assigned_controls", {})
-                    self.saved_data = data
-                    print("✅ Конфигурация загружена")
-            except Exception as e:
-                print(f"❌ Ошибка загрузки конфигурации: {e}")
-                self.saved_data = {}
-        else:
-            self.saved_data = {}
+            with open(CONFIG_FILE, 'r') as f:
+                return json.load(f)
+        return {}
 
-    def on_start(self):
-        if not hasattr(self, 'saved_data'):
-            return
-        data = self.saved_data
-        for i, ch in enumerate(self.channels):
-            if i < len(data.get("fader_values", [])):
-                ch.fader.value = data["fader_values"][i]
-            if i < len(data.get("pan_values", [])):
-                ch.pan.value = data["pan_values"][i]
-            if i < len(data.get("effect_values", [])):
-                ch.effect.value = data["effect_values"][i]
-            if i < len(data.get("mute_states", [])) and data["mute_states"][i]:
-                ch.mute.state = 'down'
-                ch.on_mute_toggle(None)
-
-        self.compressor_state = data.get("compressor_state", False)
-        self.compressor_btn.background_color = (0, 0.8, 0, 1) if self.compressor_state else (0.3, 0.3, 0.3, 1)
-
-    def enter_assign_mode(self, control_name):
-        self.assigning_control = control_name
-        popup = Popup(title="Назначение MIDI CC", size_hint=(0.6, 0.4))
-        popup.content = Label(text="Поверните контроллер или нажмите кнопку на MIDI устройстве")
-        popup.open()
-        Clock.schedule_once(lambda dt: popup.dismiss(), 3)
-
+    def save_config(self, instance=None):
+        with open(CONFIG_FILE, 'w') as f:
+            json.dump(self.config_data, f, indent=2)
 
 if __name__ == '__main__':
-    Window.clearcolor = (0.15, 0.15, 0.15, 1)
-    MidiApp().run()
+    MidiControllerApp().run()
