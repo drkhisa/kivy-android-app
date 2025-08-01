@@ -95,11 +95,8 @@ jobs:
         ANDROIDAPI: 34
         ANDROIDMINAPI: 21
         PATH: /usr/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH
-      run: |
-        /bin/rm -rf .buildozer ~/.buildozer ~/.cache
-        pip3 install 'cython<3'
-        buildozer android debug --arch arm64-v8a --verbose
-      shell: bash
+
+      run: /bin/rm -rf .buildozer ~/.buildozer ~/.cache && pip3 install 'cython<3' && buildozer android debug --arch arm64-v8a --verbose
 
 
     - name: Upload APK artifact
