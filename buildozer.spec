@@ -11,7 +11,7 @@ android.api = 31
 android.ndk_api = 21
 android.arch = armeabi-v7a
 android.sdk_path = ~/.buildozer/android/platform/android-sdk
-android.ndk_path = /usr/local/lib/android/sdk/ndk/27.3.13750724
+android.ndk_path = ~/.buildozer/android/platform/android-sdk/ndk/25.2.9519653
 android.build_tools_version = 34.0.0
 
 [buildozer]
