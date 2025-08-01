@@ -7,12 +7,13 @@ source.include_exts = py,png,jpg,kv,atlas
 version = 0.1
 requirements = python3,kivy
 orientation = portrait
+android.build_tools_version = 34.0.0
+android.accept_sdk_license = True
 android.api = 31
 android.ndk_api = 21
 android.arch = armeabi-v7a
 android.sdk_path = ~/.buildozer/android/platform/android-sdk
 android.ndk_path = ~/.buildozer/android/platform/android-sdk/ndk/25.2.9519653
-android.build_tools_version = 34.0.0
 
 [buildozer]
 log_level = 2

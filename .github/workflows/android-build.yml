@@ -19,7 +19,6 @@ jobs:
         sudo apt-get install -y coreutils python3-pip openjdk-17-jdk git zip unzip curl \
           build-essential autoconf automake libtool libtool-bin libltdl-dev pkg-config m4 tar
 
-        # Устанавливаем buildozer и cython глобально, чтобы buildozer точно был в PATH
         sudo pip3 install --upgrade buildozer cython
 
         mkdir -p $HOME/.android && touch $HOME/.android/repositories.cfg
@@ -36,23 +35,24 @@ jobs:
           rm cmdline-tools.zip
         fi
 
-        # Добавляем sdkmanager в PATH (используется для установки компонентов)
         echo "$CMDLINE_TOOLS/bin" >> $GITHUB_PATH
 
     - name: Accept licenses and install SDK components
       run: |
         export PATH="$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH"
 
-        # Обновляем sdkmanager до последней версии
         sdkmanager --update
-
-        # Принимаем все лицензии SDK
         yes | sdkmanager --licenses
 
-        # Устанавливаем строго нужные версии platform-tools, platforms, build-tools 34.0.0 и ndk
         sdkmanager "platform-tools" "platforms;android-31" "build-tools;34.0.0" "ndk;25.2.9519653"
 
-        # Создаём симлинк для legacy пути, необходимого buildozer/p4a
+        # Удалим build-tools 36.0.0, если она вдруг подтянулась
+        sdkmanager --uninstall "build-tools;36.0.0" || true
+
+        # Принудительно создаём путь для build-tools/34.0.0 (иначе Buildozer скачает 36)
+        mkdir -p $HOME/.buildozer/android/platform/android-sdk/build-tools/34.0.0
+
+        # Симлинк, необходимый для legacy пути p4a/buildozer
         mkdir -p $HOME/.buildozer/android/platform/android-sdk/tools/bin
         ln -sf $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager \
                $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
@@ -83,13 +83,9 @@ jobs:
         ANDROIDNDK: $HOME/.buildozer/android/platform/android-sdk/ndk/25.2.9519653
         ANDROIDAPI: 31
         ANDROIDMINAPI: 21
-        # Включаем в PATH нужные каталоги для корректной работы buildozer
         PATH: /usr/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH
       run: |
-        # Чистим кеши и предыдущие сборки
         /bin/rm -rf .buildozer ~/.buildozer ~/.cache
-
-        # Запускаем сборку
         buildozer android debug --verbose
       shell: bash
 
